@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp2PDF | Convert Chats to PDF</title>
+    <meta name="description" content="Convert WhatsApp chats to PDF. 100% client-side. Private. Offline.">
+    <meta name="keywords" content="WhatsApp, PDF, chat export, converter, privacy, print WhatsApp, WhatsApp to PDF">
+    <meta name="author" content="WhatsApp2PDF">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Social -->
+    <meta property="og:title" content="WhatsApp2PDF">
+    <meta property="og:description" content="Convert WhatsApp chats to PDF. Private. Offline.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://whatsapp2pdf.com">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="WhatsApp2PDF">
+    <meta name="twitter:description" content="Convert WhatsApp chats to PDF. Private. Offline.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300a884'%3E%3Cpath d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z'/%3E%3C/svg%3E">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Libraries (loaded from CDN for lightweight deployment) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // Configure PDF.js worker
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header (only visible in chat view) -->
+        <header class="header chat-only-header" id="mainHeader">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                    </div>
+                    <span class="logo-text">WhatsApp2PDF</span>
+                </div>
+                <div class="header-actions">
+                    <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+                        <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="5"/>
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                        </svg>
+                        <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                        </svg>
+                    </button>
+                    <a href="https://github.com/prit-chakalasiya/whatsapp-2-pdf" target="_blank" class="github-link" title="View on GitHub">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Upload Section (shown when no chat loaded) -->
+            <section class="upload-section" id="uploadSection">
+                <div class="upload-container">
+                    <div class="upload-hero">
+                        <div class="hero-logo">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                            </svg>
+                        </div>
+                        <h1>WhatsApp<span class="highlight-text">2PDF</span></h1>
+                        <p class="tagline">Convert chats to PDF. Private. Offline.</p>
+                    </div>
+                    
+                    <div class="dropzone" id="dropzone">
+                        <div class="dropzone-content">
+                            <div class="dropzone-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="17,8 12,3 7,8"/>
+                                    <line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                            </div>
+                            <h3>Drop export here</h3>
+                            <p>or click to browse files</p>
+                            <p class="folder-hint">(Ctrl/Cmd+Click for folder)</p>
+                            <span class="file-types">.zip file or folder with media</span>
+                        </div>
+                        <input type="file" id="fileInput" accept=".zip,.txt,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.mp3,.opus,.pdf" multiple hidden>
+                        <input type="file" id="fileInputFolder" webkitdirectory hidden>
+                        <input type="file" id="fileInputSingle" accept=".zip" hidden>
+                    </div>
+
+                    <div class="privacy-proof">
+                        <div class="proof-items">
+                            <div class="proof-item">
+                                <div class="proof-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                        <path d="M9 12l2 2 4-4"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <strong>Client-Side</strong>
+                                    <p>No server uploads</p>
+                                </div>
+                            </div>
+                            <div class="proof-item">
+                                <div class="proof-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <strong>Offline</strong>
+                                    <p>Works without internet</p>
+                                </div>
+                            </div>
+                            <div class="proof-item">
+                                <div class="proof-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14,2 14,8 20,8"/>
+                                        <line x1="16" y1="13" x2="8" y2="13"/>
+                                        <line x1="16" y1="17" x2="8" y2="17"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <strong>Print-Ready</strong>
+                                    <p>Optimized layout</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="github-cta">
+                            <a href="https://github.com/prit-chakalasiya/whatsapp-2-pdf" target="_blank" rel="noopener noreferrer" class="github-link-btn">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                                </svg>
+                                Source Code
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="how-to-export">
+                        <h3>Export from WhatsApp</h3>
+                        <ol>
+                            <li>Open chat → Menu (⋮) → <strong>More</strong> → <strong>Export chat</strong></li>
+                            <li>Choose <strong>Attach media</strong> or <strong>Without media</strong></li>
+                            <li>Upload the .zip file or select the unarchived folder here</li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chat Viewer Section (shown when chat loaded) -->
+            <section class="chat-section" id="chatSection" style="display: none;">
+                <!-- Chat Sidebar -->
+                <aside class="chat-sidebar">
+                    <div class="sidebar-header">
+                        <button class="back-btn" id="backBtn" title="New chat">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 12H5M12 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
+                        <h2>Options</h2>
+                    </div>
+                    
+                    <div class="export-section">
+                        <button class="export-btn primary" id="exportPdf">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14,2 14,8 20,8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <polyline points="10,9 9,9 8,9"/>
+                            </svg>
+                            Export PDF
+                        </button>
+                        <button class="export-btn" id="exportHtml">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="16,18 22,12 16,6"/>
+                                <polyline points="8,6 2,12 8,18"/>
+                            </svg>
+                            Export HTML
+                        </button>
+                        
+                        <!-- Export Options -->
+                        <div class="export-options">
+                            <h4>PDF Options</h4>
+                            <label class="toggle-option">
+                                <input type="checkbox" id="includeAttachments" checked>
+                                <span class="toggle-label">Attachment previews</span>
+                            </label>
+                            <label class="toggle-option">
+                                <input type="checkbox" id="includeImageGallery" checked>
+                                <span class="toggle-label">Image gallery</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="search-section">
+                        <div class="search-input-wrapper">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                            <input type="text" id="searchInput" placeholder="Search">
+                        </div>
+                    </div>
+
+                    <div class="date-filter-section">
+                        <h3>Filter by Date</h3>
+                        <div class="date-filter-inputs">
+                            <div class="date-filter-row">
+                                <span class="date-filter-label">From</span>
+                                <input type="date" id="dateFilterStart" class="date-filter-input">
+                            </div>
+                            <div class="date-filter-row">
+                                <span class="date-filter-label">To</span>
+                                <input type="date" id="dateFilterEnd" class="date-filter-input">
+                            </div>
+                        </div>
+                        <button class="date-filter-clear" id="dateFilterClear">Clear</button>
+                    </div>
+
+                    <div class="participants-section">
+                        <h3>Your Messages</h3>
+                        <p class="participant-hint">Select to show your messages on the right</p>
+                        <ul class="participants-list" id="participantsList"></ul>
+                    </div>
+                    
+                    <div class="chat-stats" id="chatStats">
+                        <div class="stat-item">
+                            <span class="stat-label">Messages</span>
+                            <span class="stat-value" id="msgCount">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Media</span>
+                            <span class="stat-value" id="mediaCount">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Date Range</span>
+                            <span class="stat-value" id="dateRange">-</span>
+                        </div>
+                    </div>
+
+                    <div class="whatsapp-limitations">
+                        <h3>Limitations</h3>
+                        <div class="limitation-item">
+                            <strong>Reply context</strong>
+                            <p>Not included in exports</p>
+                        </div>
+                        <div class="limitation-item">
+                            <strong>Image captions</strong>
+                            <p>Not exported</p>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Chat Messages Area -->
+                <div class="chat-main">
+                    <div class="chat-header-bar">
+                        <div class="chat-title-info">
+                            <div class="chat-avatar" id="chatAvatar">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                                </svg>
+                            </div>
+                            <div class="chat-title-text">
+                                <h3 id="chatTitle">Chat</h3>
+                                <span id="chatSubtitle">Loading...</span>
+                            </div>
+                        </div>
+                        <div class="chat-actions">
+                            <button class="action-btn" id="jumpToDate" title="Jump to date">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="16" y1="2" x2="16" y2="6"/>
+                                    <line x1="8" y1="2" x2="8" y2="6"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="messages-container" id="messagesContainer">
+                        <div class="messages-list" id="messagesList"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p id="loadingText">Processing...</p>
+            </div>
+        </div>
+
+        <!-- Date Picker Modal -->
+        <div class="modal" id="datePickerModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Jump to Date</h3>
+                    <button class="modal-close" id="closeDatePicker">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="date" id="jumpDateInput">
+                    <button class="btn-primary" id="jumpToDateBtn">Go</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="parser.js"></script>
+    <script src="renderer.js"></script>
+    <script src="exporter.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
