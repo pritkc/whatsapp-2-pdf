@@ -24,12 +24,12 @@ if git remote get-url origin &>/dev/null; then
         echo "✅ Code pushed successfully!"
         echo ""
         echo "📝 Next steps:"
-        echo "1. Go to: https://github.com/prit-chakalasiya/whatsapp-2-pdf/settings/pages"
+        echo "1. Go to: https://github.com/pritkc/whatsapp-2-pdf/settings/pages"
         echo "2. Under 'Source', select 'Deploy from a branch'"
         echo "3. Select branch: 'main' and folder: '/' (root)"
         echo "4. Click 'Save'"
         echo "5. Wait 1-2 minutes for deployment"
-        echo "6. Your site will be live at: https://prit-chakalasiya.github.io/whatsapp-2-pdf/"
+        echo "6. Your site will be live at: https://pritkc.github.io/whatsapp-2-pdf/"
     else
         echo "❌ Repository not found on GitHub"
         echo ""
@@ -46,7 +46,7 @@ else
     echo "❌ No remote repository configured"
     echo ""
     echo "Setting up remote..."
-    git remote add origin https://github.com/prit-chakalasiya/whatsapp-2-pdf.git
+    git remote add origin https://github.com/pritkc/whatsapp-2-pdf.git
     echo "✅ Remote added"
     echo ""
     echo "📝 Next: Create the repository on GitHub, then run this script again"
