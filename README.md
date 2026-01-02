@@ -20,7 +20,7 @@ Visit the deployed site and upload your WhatsApp export.
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/prit-chakalasiya/whatsapp-2-pdf.git
+git clone https://github.com/pritkc/whatsapp-2-pdf.git
 cd whatsapp-2-pdf
 ```
 
