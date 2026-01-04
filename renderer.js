@@ -126,11 +126,12 @@ const ChatRenderer = {
             bubble.appendChild(textEl);
         }
         
-        // Add timestamp (not for system messages)
+        // Add timestamp and edited indicator (not for system messages)
         if (!message.isSystem) {
             const metaEl = document.createElement('div');
             metaEl.className = 'message-meta';
-            metaEl.innerHTML = `<span class="message-time">${this.escapeHtml(message.formattedTime || '')}</span>`;
+            const editedIndicator = message.isEdited ? '<span class="edited-indicator" title="This message was edited">Edited</span>' : '';
+            metaEl.innerHTML = `${editedIndicator}<span class="message-time">${this.escapeHtml(message.formattedTime || '')}</span>`;
             bubble.appendChild(metaEl);
         }
         
@@ -251,20 +252,25 @@ const ChatRenderer = {
     formatMessageText(message) {
         let text = message.text || '';
         
-        // Clean any remaining timestamp patterns from the text
-        text = text.replace(/\[\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?\]\s*~?[^:]*:\s*/gi, '');
-        text = text.replace(/^\[\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?\]\s*/gm, '');
+        // Clean any remaining timestamp patterns from the text (both iOS and Android formats)
+        // iOS/Modern Android bracket format: [MM/DD/YY, HH:MM:SS AM/PM]
+        text = text.replace(/\[\d{1,2}[\/.]\d{1,2}[\/.]\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?\]\s*~?[^:]*:\s*/gi, '');
+        text = text.replace(/^\[\d{1,2}[\/.]\d{1,2}[\/.]\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?\]\s*/gm, '');
+        // Legacy Android dash format: DD/MM/YYYY, HH:MM -
+        text = text.replace(/^\d{1,2}[\/.]\d{1,2}[\/.]\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?\s*-\s*/gm, '');
         text = text.trim();
         
         // Handle special message types
         if (message.type === 'call') {
-            // Extract just the call info, remove any attached timestamps
-            const callMatch = text.match(/(Voice call|Video call)[,\s]*([\d\s]+(?:min|sec|hr)?)?/i);
+            // Extract call info (Voice call, Video call, or Group call) with duration/participants
+            const callMatch = text.match(/(Voice\s*call|Video\s*call|Group\s*call)[,\s]*(.*)?/i);
             if (callMatch) {
-                const duration = callMatch[2] ? `, ${callMatch[2].trim()}` : '';
-                return `<span style="color: #f97316">${callMatch[1]}${duration}</span>`;
+                const callType = callMatch[1];
+                const details = callMatch[2] ? `, ${callMatch[2].trim()}` : '';
+                const icon = callType.toLowerCase().includes('group') ? '👥' : '📞';
+                return `<span style="color: #f97316">${icon} ${callType}${details}</span>`;
             }
-            return `<span style="color: #f97316">${this.escapeHtml(text)}</span>`;
+            return `<span style="color: #f97316">📞 ${this.escapeHtml(text)}</span>`;
         }
         
         if (message.type === 'missed_call') {

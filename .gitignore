@@ -19,6 +19,10 @@ Thumbs.db
 # Sample data (don't commit user chat exports!)
 WhatsApp Chat*/
 *.zip
+_chat.txt
+
+# Documentation/History files
+.specstory/
 
 # Logs
 *.log
@@ -26,4 +30,5 @@ npm-debug.log*
 
 # Dependencies (if you add any later)
 node_modules/
+
 

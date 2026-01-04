@@ -1190,6 +1190,13 @@ body {
     margin-top: 0.15rem;
 }
 
+.edited-indicator {
+    font-size: 0.65rem;
+    color: var(--text-tertiary);
+    font-style: italic;
+    opacity: 0.8;
+}
+
 .message-time {
     font-size: 0.68rem;
     color: var(--text-tertiary);

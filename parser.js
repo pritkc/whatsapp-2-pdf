@@ -2,11 +2,21 @@
  * WhatsApp2PDF - Chat Parser
  * Parses WhatsApp export format into structured data
  * 
- * WhatsApp Export Format (iOS):
+ * Supports both iOS and Android WhatsApp export formats:
+ * 
+ * iOS Format (Bracketed):
  * - Normal message: [MM/DD/YY, HH:MM:SS AM/PM] Sender: Message text
  * - Attachment: ‎[MM/DD/YY, HH:MM:SS AM/PM] Sender: ‎<attached: filename>
  * - Media omitted: ‎[MM/DD/YY, HH:MM:SS AM/PM] Sender: ‎image omitted
- * - System message: [MM/DD/YY, HH:MM:SS AM/PM] System text (no colon separator)
+ * 
+ * Android Format (Bracketed - Modern):
+ * - Normal message: [DD/MM/YY, HH:MM:SS] Sender: Message text
+ * - Can use 24-hour format or 12-hour with AM/PM
+ * - May include or exclude seconds
+ * 
+ * Android Format (Dash - Legacy):
+ * - Normal message: DD/MM/YYYY, HH:MM - Sender: Message text
+ * - Uses dash as separator instead of brackets
  * 
  * Special characters:
  * - U+200E (LRM) appears at start of lines and before certain content
@@ -35,6 +45,41 @@ const WhatsAppParser = {
     },
 
     /**
+     * Detect export format from content
+     * @param {string} content - Raw chat text content
+     * @returns {string} 'ios', 'android-bracket', or 'android-dash'
+     */
+    detectFormat(content) {
+        // Clean the first few lines to detect format
+        const lines = content.replace(/\r\n/g, '\n').split('\n').slice(0, 20);
+        
+        for (const rawLine of lines) {
+            const line = this.cleanText(rawLine);
+            if (!line) continue;
+            
+            // Check for bracketed format: [date, time] sender: message
+            if (/^\[[\d\/]+,\s*[\d:]+\s*(?:AM|PM|am|pm)?\]/.test(line)) {
+                // Check if it has seconds (iOS typically has seconds)
+                if (/^\[[\d\/]+,\s*\d{1,2}:\d{2}:\d{2}/.test(line)) {
+                    console.log('📱 Detected format: iOS/Modern Android (bracketed with seconds)');
+                    return 'ios';
+                }
+                console.log('📱 Detected format: Android (bracketed)');
+                return 'android-bracket';
+            }
+            
+            // Check for dash format: date, time - sender: message (legacy Android)
+            if (/^[\d\/\.]+,\s*[\d:]+\s*(?:AM|PM|am|pm)?\s*-\s*[^:]+:/.test(line)) {
+                console.log('📱 Detected format: Android (dash/legacy)');
+                return 'android-dash';
+            }
+        }
+        
+        console.log('📱 Format detection: defaulting to iOS format');
+        return 'ios';
+    },
+
+    /**
      * Parse the chat text content
      * @param {string} content - Raw chat text content
      * @param {Map} mediaFiles - Map of filename -> blob/dataURL
@@ -46,9 +91,18 @@ const WhatsAppParser = {
         const messages = [];
         const participants = new Map();
         
-        // WhatsApp message pattern - more flexible to handle various formats
-        // Matches: [MM/DD/YY, HH:MM:SS AM/PM] Sender: Message
-        const messagePattern = /^\[(\d{1,2}\/\d{1,2}\/\d{2,4}),\s*(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?)\]\s*([^:]+):\s*(.*)/;
+        // Detect the export format
+        const exportFormat = this.detectFormat(content);
+        
+        // WhatsApp message patterns for different formats
+        // iOS/Modern Android: [MM/DD/YY, HH:MM:SS AM/PM] Sender: Message
+        const bracketPattern = /^\[(\d{1,2}[\/.]\d{1,2}[\/.]\d{2,4}),\s*(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?)\]\s*([^:]+):\s*(.*)/;
+        
+        // Legacy Android: DD/MM/YYYY, HH:MM - Sender: Message
+        const dashPattern = /^(\d{1,2}[\/.]\d{1,2}[\/.]\d{2,4}),\s*(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?)\s*-\s*([^:]+):\s*(.*)/;
+        
+        // Combined pattern that works for both
+        const messagePattern = exportFormat === 'android-dash' ? dashPattern : bracketPattern;
         
         let currentMessage = null;
         let lastTimestamp = null;
@@ -65,7 +119,7 @@ const WhatsAppParser = {
             
             if (match) {
                 const [, dateStr, timeStr, sender, text] = match;
-                const timestamp = this.parseDateTime(dateStr, timeStr);
+                const timestamp = this.parseDateTime(dateStr, timeStr, exportFormat);
                 const cleanSender = this.cleanSenderName(sender);
                 
                 // Detect quoted/reply messages:
@@ -96,7 +150,7 @@ const WhatsAppParser = {
                     const nextLine = i + 1 < rawLines.length ? this.cleanText(rawLines[i + 1]) : '';
                     const nextMatch = nextLine.match(messagePattern);
                     if (nextMatch) {
-                        const nextTimestamp = this.parseDateTime(nextMatch[1], nextMatch[2]);
+                        const nextTimestamp = this.parseDateTime(nextMatch[1], nextMatch[2], exportFormat);
                         if (nextTimestamp < timestamp) {
                             // This empty message will contain a quote - save previous and continue
                             if (currentMessage) {
@@ -155,7 +209,13 @@ const WhatsAppParser = {
                 }
             } else {
                 // Orphan line - might be a system message without sender
-                const sysMatch = line.match(/^\[(\d{1,2}\/\d{1,2}\/\d{2,4}),\s*(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?)\]\s*(.+)/);
+                // System message patterns for different formats
+                const sysBracketPattern = /^\[(\d{1,2}[\/.]\d{1,2}[\/.]\d{2,4}),\s*(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?)\]\s*(.+)/;
+                const sysDashPattern = /^(\d{1,2}[\/.]\d{1,2}[\/.]\d{2,4}),\s*(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?)\s*-\s*(.+)/;
+                
+                const sysPattern = exportFormat === 'android-dash' ? sysDashPattern : sysBracketPattern;
+                const sysMatch = line.match(sysPattern);
+                
                 if (sysMatch) {
                     if (currentMessage) {
                         this.finalizeMessage(currentMessage, mediaFiles);
@@ -165,7 +225,7 @@ const WhatsAppParser = {
                     const [, dateStr, timeStr, text] = sysMatch;
                     currentMessage = {
                         id: messages.length,
-                        timestamp: this.parseDateTime(dateStr, timeStr),
+                        timestamp: this.parseDateTime(dateStr, timeStr, exportFormat),
                         sender: 'System',
                         rawText: text,
                         text: '',
@@ -202,7 +262,8 @@ const WhatsAppParser = {
             participants: Array.from(participants.entries())
                 .map(([name, count]) => ({ name, count }))
                 .sort((a, b) => b.count - a.count),
-            stats
+            stats,
+            exportFormat // Include detected format for debugging
         };
     },
 
@@ -309,38 +370,63 @@ const WhatsAppParser = {
             return;
         }
         
-        // Check for document omitted (PDF, etc.) - no attachment tag
-        const docMatch = text.match(/([^•]+\.pdf)\s*•\s*(\d+)\s*pages?\s*(?:document\s*omitted)?/i);
+        // Check for document omitted (PDF, Excel, etc.) - no attachment tag
+        // Matches: "filename.pdf • 3 pages document omitted" or "filename.xlsx • 2 sheets document omitted"
+        const docMatch = text.match(/([^•]+\.(pdf|xlsx?|docx?|pptx?))\s*•\s*(\d+)\s*(pages?|sheets?)\s*(?:document\s*omitted)?/i);
         if (docMatch || /•.*document\s*omitted/i.test(text)) {
+            const filename = docMatch ? docMatch[1].trim() : null;
+            const extension = docMatch ? docMatch[2].toLowerCase() : null;
+            const count = docMatch ? docMatch[3] : null;
+            const countType = docMatch ? docMatch[4] : null;
+            
             message.media = {
-                filename: docMatch ? docMatch[1].trim() : null,
+                filename: filename,
                 type: 'document',
-                extension: 'pdf',
+                extension: extension,
                 data: null,
                 hasData: false,
-                pages: docMatch ? docMatch[2] : null
+                pages: count
             };
             message.type = 'document_omitted';
-            message.text = docMatch ? `${docMatch[1]} • ${docMatch[2]} pages` : '';
+            message.text = docMatch ? `${filename} • ${count} ${countType}` : '';
             return;
         }
         
-        // Check for voice/video call
-        if (/Voice\s*call|Video\s*call/i.test(text)) {
+        // Check for voice/video call (including Group calls)
+        if (/Voice\s*call|Video\s*call|Group\s*call/i.test(text)) {
             message.type = 'call';
-            const callMatch = text.match(/(Voice\s*call|Video\s*call)(?:,?\s*(\d+\s*(?:min|sec|hr|hour|minute|second)s?))?/i);
+            // Match various call formats: "Voice call, 3 min" or "Group call, 7 invited"
+            const callMatch = text.match(/(Voice\s*call|Video\s*call|Group\s*call)(?:,?\s*(.+))?/i);
             if (callMatch) {
-                message.text = callMatch[1] + (callMatch[2] ? `, ${callMatch[2]}` : '');
+                let callInfo = callMatch[1];
+                if (callMatch[2]) {
+                    // Clean up the call details (duration or invited count)
+                    const details = this.cleanText(callMatch[2]);
+                    if (details) {
+                        callInfo += `, ${details}`;
+                    }
+                }
+                message.text = callInfo;
             } else {
                 message.text = text;
             }
             return;
         }
         
-        // Check for missed call
-        if (/Missed.*call/i.test(text)) {
+        // Check for missed call (including "Tap to call back" and "No answer" Android formats)
+        if (/Missed.*call|No\s*answer|Tap\s*to\s*call\s*back/i.test(text)) {
             message.type = 'missed_call';
-            message.text = text;
+            // Clean up the text, keeping the essential info
+            let cleanedText = text
+                .replace(/,?\s*Tap\s*to\s*call\s*back/i, '')
+                .trim();
+            // If it contains "No answer", format it nicely
+            if (/No\s*answer/i.test(cleanedText)) {
+                const callType = cleanedText.match(/(Voice\s*call|Video\s*call)/i);
+                message.text = callType ? `${callType[1]} - No answer` : 'Call - No answer';
+            } else {
+                message.text = cleanedText || 'Missed call';
+            }
             return;
         }
         
@@ -356,6 +442,14 @@ const WhatsAppParser = {
             /created group|added|left|removed|changed the subject|changed this group/i.test(text)) {
             message.isSystem = true;
             message.type = 'system';
+        }
+        
+        // Check for edited message indicator
+        if (/<This message was edited>/i.test(text)) {
+            message.isEdited = true;
+            // Remove the edit indicator from text
+            message.text = this.cleanMessageText(text.replace(/<This message was edited>/gi, '').trim());
+            return;
         }
         
         // Regular text message - clean it up
@@ -455,27 +549,45 @@ const WhatsAppParser = {
 
     /**
      * Parse date and time into a Date object
+     * @param {string} dateStr - Date string
+     * @param {string} timeStr - Time string
+     * @param {string} exportFormat - Export format ('ios', 'android-bracket', 'android-dash')
      */
-    parseDateTime(dateStr, timeStr) {
+    parseDateTime(dateStr, timeStr, exportFormat = 'ios') {
         try {
             // Clean the strings
             dateStr = this.cleanText(dateStr);
             timeStr = this.cleanText(timeStr);
             
-            // Parse date (MM/DD/YY or DD/MM/YY)
-            const dateParts = dateStr.split('/').map(p => parseInt(p, 10));
+            // Parse date - handle both / and . separators
+            const dateParts = dateStr.split(/[\/.]/).map(p => parseInt(p, 10));
             if (dateParts.length !== 3) return new Date();
             
-            let [month, day, year] = dateParts;
+            let [first, second, year] = dateParts;
+            let month, day;
             
             // Handle 2-digit year
             if (year < 100) {
                 year += year < 50 ? 2000 : 1900;
             }
             
-            // If month > 12, swap (DD/MM/YY format)
-            if (month > 12) {
-                [month, day] = [day, month];
+            // Determine date format based on values and export format
+            // iOS typically uses MM/DD/YY, some Android regions use DD/MM/YY
+            if (first > 12) {
+                // First value > 12 means it must be DD/MM/YY format
+                day = first;
+                month = second;
+            } else if (second > 12) {
+                // Second value > 12 means it must be MM/DD/YY format
+                month = first;
+                day = second;
+            } else {
+                // Both values <= 12, use format hint
+                // iOS and US Android: MM/DD/YY
+                // International Android: DD/MM/YY
+                // Default to MM/DD/YY as it's more common in WhatsApp exports
+                month = first;
+                day = second;
             }
             
             // Parse time
@@ -488,9 +600,11 @@ const WhatsAppParser = {
             const period = timeMatch[4];
             
             if (period) {
+                // 12-hour format with AM/PM
                 if (period.toUpperCase() === 'PM' && hours !== 12) hours += 12;
                 else if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
             }
+            // If no period, assume 24-hour format (common in international Android exports)
             
             return new Date(year, month - 1, day, hours, minutes, seconds);
         } catch (e) {

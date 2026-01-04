@@ -482,6 +482,7 @@ const App = {
         // Parse the chat
         this.chatData = WhatsAppParser.parse(chatContent, this.mediaFiles);
         
+        console.log(`📱 Export format detected: ${this.chatData.exportFormat || 'unknown'}`);
         console.log(`Parsed ${this.chatData.messages.length} messages`);
         console.log(`Found ${this.chatData.participants.length} participants`);
         console.log(`Media files available: ${this.mediaFiles.size}`);
